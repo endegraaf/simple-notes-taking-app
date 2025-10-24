@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+   <head>
+      <meta charset="utf-8">
+      <title>People Info</title>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+      <style>
+         body {
+         font-family: Arial, sans-serif;
+         }
+         #toggleButton {
+         float: right;
+         font-size: 24px;
+         padding: 8px 12px;
+         background-color: #0078D4;
+         color: white;
+         border: none;
+         border-radius: 4px;
+         cursor: pointer;
+         }
+         #toggleButton:hover {
+         background-color: #005A9E;
+         }
+         #personForm {
+         display: none;
+         margin-top: 60px;
+         clear: both;
+         }
+      </style>
+   </head>
+   <body class="bg-light p-4">
+      <div class="container">
+         <nav class="navbar navbar-light bg-light px-3">
+           <a class="navbar-brand d-flex align-items-center" href="#">
+             <img src="{{ url_for('static', filename='resources/images/logo.png') }}" alt="Logo" width="80" height="80"
+                  class="me-2">
+             <span class="fs-4">People Info</span>
+           </a>
+         </nav>
+
+         <button id="toggleButton">＋</button>
+         <form id="personForm" action="/add" method="post" class="row g-3 mb-4">
+            <input type="hidden" name="id" value="{{ id }}">
+            <div class="form-group row">
+               <div class="col-xs-3">
+                  <label for="ex1">On </label>
+                  <input class="form-control" id="ex1" type="text" name="date_met" value="{{ today }}">
+               </div>
+               <div class="col-xs-3">
+                  <label for="ex2">I met </label>
+                  <input name="name" id="ex2" class="form-control" placeholder="name" required>
+               </div>
+               <div class="col-xs-3">
+                  <label for="ex3">who is </label>
+                  <input name="age" id="ex3" type="number" class="form-control" placeholder="years old">
+               </div>
+            </div>
+            <div class="col-md-3"><input name="cob" class="form-control" placeholder="born in"></div>
+            <div class="col-md-3"><input name="location" class="form-control" placeholder="living in"></div>
+            <div class="col-md-4"><input name="school" class="form-control" placeholder="studied"></div>
+            <div class="col-12">
+               <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" id="toggleChildrenSwitch" onclick="toggleChildren()">
+                  <label class="form-check-label" for="toggleChildrenSwitch">Has children?</label>
+               </div>
+               <div id="children-section" style="display: none;">
+                  <label class="form-label">Children</label>
+                  <div id="children-container">
+                     <div class="row g-2 mb-2">
+                        <div class="col"><input name="child_name" class="form-control" placeholder="Child Name"></div>
+                        <div class="col"><input name="child_age" type="number" class="form-control" placeholder="Age"></div>
+                     </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="addChild()">Add Another Child</button>
+               </div>
+            </div>
+            <div class="col-12"><input name="likes" class="form-control" placeholder="Likes (comma-separated)"></div>
+            <div class="col-12"><input name="notes" class="form-control" placeholder="Other notes (comma-separated)"></div>
+            <div class="col-12"><button type="submit" class="btn btn-primary">Add/Update</button></div>
+         </form>
+         <form method="get" id="filterForm" class="mb-4">
+            <div class="row g-2 align-items-end">
+               <div class="col-md-4">
+                  <label for="nameSearch" class="form-label">Search by Name:</label>
+                  <div class="input-group">
+                     <input type="text" name="name" id="nameSearch" class="form-control" value="{{ request.args.get('name', '') }}">
+                     <button type="button" class="btn btn-outline-secondary" onclick="clearField('nameSearch')">Clear</button>
+                  </div>
+               </div>
+               <div class="col-md-4">
+                  <label for="likeFilter" class="form-label">Filter by Like:</label>
+                  <div class="input-group">
+                     <select name="like" id="likeFilter" class="form-select">
+                        <option value="">-- All --</option>
+                        {% for like in likes_filter %}
+                        <option value="{{ like }}" {% if request.args.get('like') == like %}selected{% endif %}>{{ like }}</option>
+                        {% endfor %}
+                     </select>
+                     <button type="button" class="btn btn-outline-secondary" onclick="clearField('likeFilter')">Clear</button>
+                  </div>
+               </div>
+            </div>
+         </form>
+         <hr />
+         <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>People Records</h2>
+            <div>
+               <a href="{{ url_for('index', view='cards', name=request.args.get('name'), like=request.args.get('like')) }}" class="btn btn-outline-primary {% if view_mode == 'cards' %}active{% endif %}">Card View</a>
+               <a href="{{ url_for('index', view='table', name=request.args.get('name'), like=request.args.get('like')) }}" class="btn btn-outline-primary {% if view_mode == 'table' %}active{% endif %}">Table View</a>
+            </div>
+         </div>
+         {% if view_mode == 'cards' %}
+         <!-- Card Grid Layout -->
+         <div class="container">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3">
+               {% for person in people %}
+               <div class="row justify-content-center">
+                  <div class="col">
+                     <div class="card mb-4 shadow-sm">
+                        <div class="card-body">
+                           <h5 class="card-title">{{ person.name }}</h5>
+                           <h6 class="card-subtitle mb-2 text-muted">{{ person.age }}</h6>
+                           <p class="card-text">
+                              <strong>Location:</strong>{{ person.location }}<br>
+                              <strong>School:</strong> {{ person.school }}
+                           </p>
+                           <div class="mb-2">
+                              <strong>Likes:</strong>
+                              <ul class="list-group list-group-flush">
+                                 <li class="list-group-item">{{ person.likes | join(', ') }}</li>
+                              </ul>
+                           </div>
+                           <div class="mb-2">
+                              <strong>Notes:</strong>
+                              <ul class="list-group list-group-flush">
+                                 <li class="list-group-item">{{ person.notes | join(', ') }}</li>
+                              </ul>
+                           </div>
+
+
+                           {% if person.children %}
+                             <div class="mb-3">
+                               <strong>Children:</strong>
+                               <ul class="list-group list-group-flush">
+                                 {% for child in person.children %}
+                                   <li class="list-group-item">{{ child.name }} ({{ child.age }})</li>
+                                 {% endfor %}
+                               </ul>
+                             </div>
+                           {% endif %}
+
+
+<!--                           <div>-->
+<!--                              <strong>Children:</strong>-->
+<!--                              <ul class="list-group list-group-flush">-->
+<!--                                 {% for child in person.children %}-->
+<!--                                 <li class="list-group-item">{{ child.name }} {{ child.age }}</li>-->
+<!--                                 {% endfor %}-->
+<!--                              </ul>-->
+<!--                           </div>-->
+                        </div>
+                     </div>
+                     <a href="{{ url_for('edit_person', id=person['id']) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                     <!-- Delete Button -->
+                     <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal_{{ person['id'] }}">
+                     Delete
+                     </button>
+                     <!-- Modal -->
+                     <div class="modal fade" id="confirmDeleteModal_{{ person['id'] }}" tabindex="-1" aria-labelledby="confirmDeleteModalLabel_{{ person['id'] }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                           <div class="modal-content">
+                              <form action="{{ url_for('delete_person', id=person['id']) }}" method="POST">
+                                 <div class="modal-header">
+                                    <h5 class="modal-title" id="confirmDeleteModalLabel_{{ person['id'] }}">Confirm Deletion</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                 </div>
+                                 <div class="modal-body">
+                                    Are you sure you want to delete <strong>{{ person['id'] }}</strong>?
+                                 </div>
+                                 <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                                 </div>
+                              </form>
+                           </div>
+                        </div>
+                     </div>
+                     </form>
+                  </div>
+               </div>
+               {% endfor %}
+            </div>
+            {% else %}
+         </div>
+         <div class="container">
+            <!-- Table Layout -->
+            <div class="table-responsive">
+               <table class="table table-striped table-bordered">
+                  <thead>
+                     <tr>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Location</th>
+                        <th>School</th>
+                        <th>Likes</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {% for person in people %}
+                     <tr>
+                        <td>{{ person.name }}</td>
+                        <td>{{ person.age }}</td>
+                        <td>{{ person.location }}</td>
+                        <td>{{ person.school }}</td>
+                        <td>{{ person.likes | join(', ') }}</td>
+                     </tr>
+                     {% endfor %}
+                  </tbody>
+               </table>
+            </div>
+            {% endif %}
+            <nav aria-label="Page navigation">
+               <ul class="pagination justify-content-center">
+                  {% if page > 1 %}
+                  <li class="page-item">
+                     <a class="page-link" href="{{ url_for('index', page=page-1, view=view_mode, name=request.args.get('name'), like=request.args.get('like')) }}">Previous</a>
+                  </li>
+                  {% endif %}
+                  {% for p in range(1, total_pages + 1) %}
+                  <li class="page-item {% if p == page %}active{% endif %}">
+                     <a class="page-link" href="{{ url_for('index', page=p, view=view_mode, name=request.args.get('name'), like=request.args.get('like')) }}">{{ p }}</a>
+                  </li>
+                  {% endfor %}
+                  {% if page < total_pages %}
+                  <li class="page-item">
+                     <a class="page-link" href="{{ url_for('index', page=page+1, view=view_mode, name=request.args.get('name'), like=request.args.get('like')) }}">Next</a>
+                  </li>
+                  {% endif %}
+               </ul>
+            </nav>
+         </div>
+      </div>
+      <script>
+         function toggleChildren() {
+           const section = document.getElementById('children-section');
+           section.style.display = section.style.display === 'none' ? 'block' : 'none';
+         }
+
+         function addChild() {
+           const container = document.getElementById('children-container');
+           const row = document.createElement('div');
+           row.className = 'row g-2 mb-2';
+           row.innerHTML = `
+             <div class="col"><input name="child_name" class="form-control" placeholder="Child Name"></div>
+             <div class="col"><input name="child_age" type="number" class="form-control" placeholder="Age"></div>
+           `;
+           container.appendChild(row);
+         }
+      </script>
+      <script>
+         const nameInput = document.getElementById('nameSearch');
+         const likeSelect = document.getElementById('likeFilter');
+
+         // Auto-submit on dropdown change
+         likeSelect.addEventListener('change', () => {
+           document.getElementById('filterForm').submit();
+         });
+
+         // Auto-submit on typing pause
+         let typingTimer;
+         nameInput.addEventListener('input', () => {
+           clearTimeout(typingTimer);
+           typingTimer = setTimeout(() => {
+             localStorage.setItem('refocus', 'nameSearch');
+             localStorage.setItem('cursorPos', nameInput.selectionStart);
+             document.getElementById('filterForm').submit();
+           }, 500);
+         });
+
+         // Restore focus and cursor
+         window.addEventListener('load', () => {
+           const refocusId = localStorage.getItem('refocus');
+           const cursorPos = localStorage.getItem('cursorPos');
+           if (refocusId) {
+             const el = document.getElementById(refocusId);
+             if (el) {
+               el.focus();
+               if (cursorPos !== null) {
+                 el.setSelectionRange(cursorPos, cursorPos);
+               }
+             }
+             localStorage.removeItem('refocus');
+             localStorage.removeItem('cursorPos');
+           }
+         });
+
+         // Clear field and submit
+         function clearField(id) {
+           const el = document.getElementById(id);
+           if (el.tagName === 'INPUT') {
+             el.value = '';
+           } else if (el.tagName === 'SELECT') {
+             el.selectedIndex = 0;
+           }
+           document.getElementById('filterForm').submit();
+         }
+      </script>
+      <script>
+         const toggleButton = document.getElementById("toggleButton");
+         const personForm = document.getElementById("personForm");
+
+         toggleButton.addEventListener("click", function () {
+           const isVisible = personForm.style.display === "block";
+           personForm.style.display = isVisible ? "none" : "block";
+           toggleButton.textContent = isVisible ? "＋" : "−";
+         });
+      </script>
+      <!-- Bootstrap JS (required for modal functionality) -->
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+   </body>
+</html>
