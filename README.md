@@ -1,4 +1,4 @@
-# People Tracker Web App
+# Simple Note taking Web App
 
 This is a simple Flask web application to track information about people you have conversations with.
 
